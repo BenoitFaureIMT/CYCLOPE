@@ -23,4 +23,4 @@ class target(object):
         self.time_since_last_detection = 0
     
     def update_feature(self, n_feature, alpha):
-        self.features = n_feature * alpha + self.features * (1 - alpha)
+        self.features = self.features * alpha + n_feature * (1 - alpha) #n_feature * alpha + self.features * (1 - alpha)
