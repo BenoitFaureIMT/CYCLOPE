@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from Detection import YOLOv5
+from Detection import YOLOv7
 from Tracker import Cyclop
 
 def display(targs, img):
@@ -38,7 +38,7 @@ def display_both(targs, out, ind_dets, img):
     cv2.imshow('Yolov5 + FishSORT', img)
 
 tr = Cyclop()
-det = YOLOv5("saved_model")
+det = YOLOv7()
 det.warm_up()
 
 init_img = np.ones((640, 640, 3)) * 255
@@ -54,13 +54,20 @@ ret = True
 while ret:
     print("-------------------")
     ret, frame = cam.read()
+
     frame = cv2.resize(frame, (640, 640), interpolation=cv2.INTER_LINEAR)
-    out = det.process_output(det.run_net(frame))
+    disp = frame.copy()
+    frame = frame[:, :, ::-1].transpose(2, 0, 1)
+    frame = np.ascontiguousarray(frame)
+
+    out = det.run_net(frame) / 640
+    o2 = out.copy()
+    out[:, 0], out[:, 1], out[:, 2], out[:, 3] = o2[:, 1], o2[:, 0], o2[:, 3], o2[:, 2]
     print("Detections : ", len(out))
 
-    ind_dets = tr.update(out.copy(), frame, 0.01)
+    ind_dets = tr.update(out.copy(), disp, 0.01)
 
-    display_both(tr.targs, out, ind_dets, frame)
+    display_both(tr.targs, out, ind_dets, disp)
     k = cv2.waitKey(1)
     if k == 27:
         break

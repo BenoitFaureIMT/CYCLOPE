@@ -1,121 +1,72 @@
-from pydoc import ispackage
-import tensorflow as tf
 import numpy as np
 import cv2
 
 
-# from yolov7.models.experimental import attempt_load
-# from yolov7.utils.torch_utils import select_device
-# from yolov7.utils.general import non_max_suppression
-# import torch
+from models.experimental import attempt_load
+from utils.torch_utils import select_device
+from utils.general import non_max_suppression
+import torch
 
-# class YOLOv7(object):
-#     def __init__(self):
-#         imgsz = 640
+class YOLOv7(object):
+    def __init__(self):
+        self.device_choice = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.device = torch.device(self.device_choice)
+        #Load model
+        self.model = attempt_load("YoloV7x-m-c.pt", map_location=self.device)
+        #FP16 (seems to be if device != cpu)
+        self.half = self.device_choice != 'cpu'
+        if self.half:
+            self.model.half()
 
-#         device = select_device('0')
-#         #Load model
-#         self.model = attempt_load("YoloV7x-m-c", map_location=device)
-#         #FP16 (seems to be if device != cpu)
-#         self.model.half()
-
-#         #Non max
-#         self.conf_thres = 0.25
-#         self.iou_thres = 0.45
-
-
-#         #Warmup
-#         self.model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(self.model.parameters())))
-    
-#     def run_net(self, img):
-
-#         img = torch.from_numpy(img).to(self.device)
-#         img = img.half()  # uint8 to fp16
-#         img /= 255.0  # 0 - 255 to 0.0 - 1.0
-#         if img.ndimension() == 3:
-#             img = img.unsqueeze(0) #WTF?
-
-#         pred = self.model(img)[0] #What about augment, I dont know...
-#         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres) #classes=opt.classes, agnostic=opt.agnostic_nms
-
-#         print(pred)
-        
-
-class YOLOv5(object):
-    #----------------------------------------------------------------Main-----------------------------------------------------------------
-    def __init__(self, path):
-        self.model = tf.saved_model.load(path)
-
-    def run_net(self, img):
-        #Process image
-        img = tf.keras.preprocessing.image.img_to_array(img)
-        img = tf.convert_to_tensor(img) / 225
-        img = img[tf.newaxis, ...]
-
-        output_data = self.model(img).numpy()
-
-        return output_data
-    
-    def process_output(self, output_data, min_score = 0.5, nms_iou_threshold = 0.65):
-
-        #Output shape : (Excluding first dimension) -> [..., [x, y, w, h, confidence, ind0 conf, ind1 conf, ...], ...]
-        output_data = output_data[0]
-        output_data = output_data[np.where(output_data[:, 4] > min_score)]
-
-        output_data = [[bbox[1] - bbox[3] / 2, bbox[0] - bbox[2] / 2, bbox[1] + bbox[3] / 2, bbox[0] + bbox[2] / 2, bbox[4], bbox[5:].argmax()] for bbox in output_data]
-
-        #NMS
-        output_data = np.array(output_data)
-        if(len(output_data) != 0):
-            selected = tf.image.non_max_suppression(output_data[:, :4], output_data[:, 4], 30000, nms_iou_threshold)
-            output_data = output_data[selected, :]
-
-        return output_data
-
-    #Utility functions
-    def run_img(self, img_path):
-        return self.run_net(cv2.resize(cv2.imread(img_path), (640, 640), interpolation=cv2.INTER_LINEAR))
+        #Non max
+        self.conf_thres = 0.25
+        self.iou_thres = 0.45
     
     def warm_up(self):
-        self.run_net(tf.zeros((640, 640, 3)))
-    
-    #Interface functions
-    def detect(self, img_path, min_score = 0.5, nms_iou_threshold = 0.65):
-        output_data = self.process_output(self.run_img(img_path), min_score, nms_iou_threshold)
-                
-        return output_data
+        #Warmup
+        if self.half:
+            self.model(torch.zeros(1, 3, 640, 640).to(self.device).type_as(next(self.model.parameters()))) #TODO 640 to variable image size
 
-    def display(self, output_data, img_path, is_path = True):
-        img = img_path
-        if (is_path):
-            img = cv2.imread(img_path)
-        coords = output_data[..., :4]
+    def run_net(self, img):
 
-        for i in coords:
-            y,x,yp,xp = i[0]*640,i[1]*640,i[2]*640,i[3]*640
-            cv2.rectangle(img, (int(x), int(y)), (int(xp), int(yp)), (255,0,0), 1)
+        img = torch.from_numpy(img).to(self.device)
+        img = img.half() if self.half else img.float()  # uint8 to fp16/fp32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0) #WTF?
 
-        cv2.imshow('BBox', img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-    #-------------------------------------------------------------------------------------------------------------------------------------
-    #----------------------------------------------------------------Other----------------------------------------------------------------
-    def load_tflite(self, tf_lite_f_path):
-        self.interpreter = tf.lite.Interpreter(tf_lite_f_path)
-    
-    def run_tflite(self, img):
-        #Get interpreter info
-        input_details = self.interpreter.get_input_details()
-        output_details = self.interpreter.get_output_details()
-        self.interpreter.allocate_tensors()
+        pred = self.model(img)[0] #What about augment, I dont know...
+        pred = non_max_suppression(pred, self.conf_thres, self.iou_thres) #classes=opt.classes, agnostic=opt.agnostic_nms
 
-        #Process image
-        img = tf.keras.preprocessing.image.img_to_array(img)
+        return np.array(pred[0].cpu())
 
-        #Set image and run
-        self.interpreter.set_tensor(input_details[0]['index'], tf.expand_dims(img, axis=0))
-        self.interpreter.invoke()
+if False:
+    def display_yolo(out, img):
+        for o in out:
+            x,y,x2,y2 = o[:4]
+            cv2.rectangle(img, (int(x), int(y)), (int(x2), int(y2)), (0,255,0), 1)
+        
+        cv2.imshow('Yolov5', img)
 
-        output_data = self.interpreter.get_tensor(output_details[0]['index'])
-        return output_data
-    #-------------------------------------------------------------------------------------------------------------------------------------
+    det = YOLOv7()
+
+    cam = cv2.VideoCapture("testfish.avi")
+    ret = True
+    while ret:
+        print("-------------------")
+        ret, frame = cam.read()
+        frame = cv2.resize(frame, (640, 640), interpolation=cv2.INTER_LINEAR)
+        disp = frame.copy()
+        frame = frame[:, :, ::-1].transpose(2, 0, 1)
+        frame = np.ascontiguousarray(frame)
+
+        out = det.run_net(frame)
+        print(out)
+        
+        display_yolo(out, disp)
+        k = cv2.waitKey(1)
+        if k == 27:
+            break
+
+    cam.release()
+    cv2.destroyAllWindows()
