@@ -27,6 +27,7 @@ class ResNet50(object):
         return img[int(bbox[1]*h):int((bbox[1] + bbox[3])*h),int(bbox[0]*w):int((bbox[0] + bbox[2])*w)]
 
     def extract_features(self, img):
+        # cv2.imshow("b" + str(np.random.randint(0, high = 100000)), img)
         img = cv2.resize(img, self.input_shape, cv2.INTER_LINEAR) / 255
         img = np.array([img]) #Be carefull here...
         f = self.model.predict(img)
@@ -79,7 +80,9 @@ class ResNeXt50(object):
         return img[int(bbox[1]*h):int((bbox[1] + bbox[3])*h),int(bbox[0]*w):int((bbox[0] + bbox[2])*w)]
 
     def extract_features(self, img):
-        input_image = Image.open(img)
+        #input_image = Image.open(img)
+        input_image = Image.fromarray(img) #TODO Attention étape supplémentaire
+        input_image.show()
         preprocess = transforms.Compose([
             transforms.Resize(256),
             transforms.CenterCrop(224),

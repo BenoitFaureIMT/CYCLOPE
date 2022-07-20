@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import lap
 
-from ReID import ResNet50
+from ReID import ResNet50, ResNeXt50
 from Filter import NNFilter
 from Target import target
 from Utils import IoU
