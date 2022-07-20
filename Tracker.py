@@ -19,7 +19,8 @@ class Cyclop(object):
 
         #Initialise targets
         self.targs = np.array([])
-        self.age_max = 10
+        self.age_max = 6
+        self.next_id = 0
 
         #Initialise EMA
         self.alpha = 0.9
@@ -29,8 +30,8 @@ class Cyclop(object):
 
         #Coefficients for filtering TODO : change value and location of variables
         IoU_threshold = 0.2
-        cosine_threshold = 0.2
-        cost_threshold = 0.2
+        cosine_threshold = 0.8
+        cost_threshold = 0.4
 
         #Get new state predictions for each target
         for t in self.targs:
@@ -39,7 +40,7 @@ class Cyclop(object):
         #Obtain features
         detection_features = np.array([self.reid.get_features(image, bbox) for bbox in detections]) #TODO : make sure this works
 
-        #Change detections format
+        #Change detections format yxyx -> xywh
         detections[:, 2], detections[:, 3] = detections[:, 3] - detections[:, 1], detections[:, 2] - detections[:, 0]
         detections[:, 0], detections[:, 1] = detections[:, 1] + detections[:, 2]/2, detections[:, 0] + detections[:, 3]/2
         
@@ -50,7 +51,7 @@ class Cyclop(object):
             cost_matrix = np.array([[]])
             match, unm_tr, unm_det = [], range(len(self.targs)), range(len(detections))
         else:
-            #   Calculate IOU cost matrix
+            #   Calculate IOU cost matrix TODO (IOU CALCULATION TAKES xywh RIGHT NOW, NOT EFFICIENT!!!!!!!!)
             cost_matrix_IoU = np.array([[1 - IoU(t.pred_state.T[0], d) for d in detections] for t in self.targs]) #TODO : calculate it...
             cost_matrix_IoU[cost_matrix_IoU > IoU_threshold] = 1.0
 
@@ -65,6 +66,9 @@ class Cyclop(object):
 
         print(match, unm_tr, unm_det)
 
+        #Indices of detections - this is for debug purposes
+        list_ind_det = np.ones((len(detections),)) * -1
+
         #Process associations
         #   Targets which were matched
         new_targs = []
@@ -73,6 +77,8 @@ class Cyclop(object):
             self.filter.update_state(targ, detections[ind_det], dt)
             targ.update_feature(detection_features[ind_det], self.alpha)
             new_targs.append(targ)
+            #Indices of detections
+            list_ind_det[ind_det] = self.targs[ind_track].id
 
         #   Targets which were not matched
         for ind_unm_tr in unm_tr:
@@ -83,9 +89,15 @@ class Cyclop(object):
         
         #   New targets
         for ind_unm_det in unm_det:
-            new_targs.append(target(detections[ind_unm_det], detection_features[ind_unm_det]))
+            new_targs.append(target(detections[ind_unm_det], detection_features[ind_unm_det], self.next_id))
+            self.next_id += 1
+            #Indices of detections
+            list_ind_det[ind_unm_det] = new_targs[-1].id
         
         self.targs = np.array(new_targs)
+        
+        #Indices of detections
+        return list_ind_det
     
     def associate(self, cost_mat, cost_thres): # TODO : does this work?
         if cost_mat.size == 0:

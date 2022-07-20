@@ -5,8 +5,9 @@ from Utils import xyxy_to_xywh
 
 #Class containing the definition of a target/tracklet
 class target(object):
-    def __init__(self, bbox, features): #bbox -> [x, y, w, h, ...]
+    def __init__(self, bbox, features, id): #bbox -> [x, y, w, h, ...]
         #Initialize association info
+        self.id = id
         self.age = 1
 
         #Initialize ReID info
@@ -14,7 +15,7 @@ class target(object):
 
         #Initialize tracking info
         #   Initialize state info
-        self.state = np.expand_dims(np.append(xyxy_to_xywh(bbox[:4]), [0, 0, 0, 0]), axis=0).T #TODO : is :4 necessary? + check if conversion still viable
+        self.state = np.expand_dims(np.append(bbox[:4], [0, 0, 0, 0]), axis=0).T #TODO : is :4 necessary? + check if conversion still viable
         self.pred_state = self.state
         #   Other
         self.last_detected_state = self.state

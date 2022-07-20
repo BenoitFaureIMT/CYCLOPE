@@ -60,7 +60,7 @@ class NNFilter(object):
             dpx = detect[0] - targ.last_detected_state[0,0]
             dpy = detect[1] - targ.last_detected_state[1,0]
             dpw = detect[2] - targ.last_detected_state[2,0]
-            dph = detect[2] - targ.last_detected_state[2,0]
+            dph = detect[3] - targ.last_detected_state[3,0]
             ndt = targ.time_since_last_detection
             targ.missed_detection = False
             targ.time_since_last_detection = 0

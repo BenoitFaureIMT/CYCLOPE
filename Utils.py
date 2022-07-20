@@ -17,10 +17,10 @@ def xyxy_to_xywh(bbox):
 
 ####################################CALCULATION################################
 def IoU(box1, box2) :
-    x1 = max(box1[0] - box1[2]/2, box2[0])
-    y1 = max(box1[1] - box1[3]/2, box2[1])
-    x2 = min(box1[0] + box1[2]/2, box2[2])
-    y2 = min(box1[1] + box1[3]/2, box2[3])
+    x1 = max(box1[0] - box1[2]/2, box2[0] - box2[2]/2)
+    y1 = max(box1[1] - box1[3]/2, box2[1] - box2[3]/2)
+    x2 = min(box1[0] + box1[2]/2, box2[0] + box2[2]/2)
+    y2 = min(box1[1] + box1[3]/2, box2[1] + box2[3]/2)
     width = (x2 - x1)
     height = (y2 - y1)
     if (width<0) or (height <0):

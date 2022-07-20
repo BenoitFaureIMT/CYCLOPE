@@ -3,6 +3,44 @@ import tensorflow as tf
 import numpy as np
 import cv2
 
+
+# from yolov7.models.experimental import attempt_load
+# from yolov7.utils.torch_utils import select_device
+# from yolov7.utils.general import non_max_suppression
+# import torch
+
+# class YOLOv7(object):
+#     def __init__(self):
+#         imgsz = 640
+
+#         device = select_device('0')
+#         #Load model
+#         self.model = attempt_load("YoloV7x-m-c", map_location=device)
+#         #FP16 (seems to be if device != cpu)
+#         self.model.half()
+
+#         #Non max
+#         self.conf_thres = 0.25
+#         self.iou_thres = 0.45
+
+
+#         #Warmup
+#         self.model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(self.model.parameters())))
+    
+#     def run_net(self, img):
+
+#         img = torch.from_numpy(img).to(self.device)
+#         img = img.half()  # uint8 to fp16
+#         img /= 255.0  # 0 - 255 to 0.0 - 1.0
+#         if img.ndimension() == 3:
+#             img = img.unsqueeze(0) #WTF?
+
+#         pred = self.model(img)[0] #What about augment, I dont know...
+#         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres) #classes=opt.classes, agnostic=opt.agnostic_nms
+
+#         print(pred)
+        
+
 class YOLOv5(object):
     #----------------------------------------------------------------Main-----------------------------------------------------------------
     def __init__(self, path):
