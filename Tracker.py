@@ -3,7 +3,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 import lap
 
-from ReID import ResNet50
+from ReID import ResNeXt50
 from Filter import NNFilter
 from Target import target
 from Utils import IoU
@@ -12,7 +12,7 @@ from Utils import IoU
 class Cyclop(object):
     def __init__(self, filter_weight_path = "filter_weights.npy", reid = None, kalman = None, association = None): #screen_w, screen_h,
         #Initialise ReID
-        self.reid = ResNet50() if reid == None else reid
+        self.reid = ResNeXt50() if reid == None else reid
         
         #Initialise Filter
         self.filter = NNFilter(filter_weight_path)

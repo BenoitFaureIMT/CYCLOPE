@@ -1,5 +1,4 @@
 import cv2
-from matplotlib.pyplot import draw
 import numpy as np
 from Detection import YOLOv5
 from Tracker import Cyclop
@@ -59,18 +58,8 @@ while ret:
     out = det.process_output(det.run_net(frame))
     print("Detections : ", len(out))
 
-    #Preprocess detection
-    # out_p = np.zeros(out.shape)
-    # out_p[:, 2], out_p[:, 3] = out[:, 3] - out[:, 1], out[:, 2] - out[:, 0]
-    # out_p[:, 0], out_p[:, 1] = out[:, 1] + out_p[:, 3]/2, out[:, 0] + out_p[:, 2]/2
-
     ind_dets = tr.update(out.copy(), frame, 0.01)
 
-    #print(len(tr.targs))
-    #if len(tr.targs) > 0: 
-    #print(tr.targs[0].state)
-    #display(tr.targs, frame)
-    #display_yolo(out, frame)
     display_both(tr.targs, out, ind_dets, frame)
     k = cv2.waitKey(1)
     if k == 27:
