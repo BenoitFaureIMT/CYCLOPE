@@ -1,7 +1,10 @@
 import cv2
 import numpy as np
+import time
+
 from Detection import YOLOv7
 from Tracker import Cyclop
+from ReID import ResNeXt50
 
 def display(targs, img):
     for t in targs:
@@ -37,9 +40,9 @@ def display_both(targs, out, ind_dets, img):
     
     cv2.imshow('Yolov5 + FishSORT', img)
 
-tr = Cyclop()
 det = YOLOv7()
 det.warm_up()
+tr = Cyclop(reid = ResNeXt50(det.device_choice))
 
 init_img = np.ones((640, 640, 3)) * 255
 cv2.putText(init_img, "PRESS SPACE TO START", (320 - 160, 320), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
@@ -53,6 +56,7 @@ cam = cv2.VideoCapture("testfish.avi")
 ret = True
 while ret:
     print("-------------------")
+    t = time.perf_counter()
     ret, frame = cam.read()
 
     frame = cv2.resize(frame, (640, 640), interpolation=cv2.INTER_LINEAR)
@@ -64,8 +68,10 @@ while ret:
     o2 = out.copy()
     out[:, 0], out[:, 1], out[:, 2], out[:, 3] = o2[:, 1], o2[:, 0], o2[:, 3], o2[:, 2]
     print("Detections : ", len(out))
+    print("Detection : ", int((time.perf_counter() - t) * 1000), " ms")
 
     ind_dets = tr.update(out.copy(), disp, 0.01)
+    print("Total : ", int((time.perf_counter() - t) * 1000), " ms")
 
     display_both(tr.targs, out, ind_dets, disp)
     k = cv2.waitKey(1)

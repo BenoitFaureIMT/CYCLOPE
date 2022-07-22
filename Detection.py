@@ -3,7 +3,6 @@ import cv2
 
 
 from models.experimental import attempt_load
-from utils.torch_utils import select_device
 from utils.general import non_max_suppression
 import torch
 

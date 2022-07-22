@@ -10,9 +10,9 @@ from Utils import IoU
 
 #Class containing the tracker logic
 class Cyclop(object):
-    def __init__(self, filter_weight_path = "filter_weights.npy", reid = None, kalman = None, association = None): #screen_w, screen_h,
+    def __init__(self, filter_weight_path = "filter_weights.npy", reid = None): #screen_w, screen_h,
         #Initialise ReID
-        self.reid = ResNeXt50() if reid == None else reid
+        self.reid = ResNeXt50('cpu') if reid == None else reid
         
         #Initialise Filter
         self.filter = NNFilter(filter_weight_path)

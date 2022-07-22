@@ -6,8 +6,13 @@ from PIL import Image
 from torchvision import transforms
 
 class ResNeXt50(object):
-    def __init__(self, input_shape = (224, 224)):
-        self.model = torch.hub.load('pytorch/vision:v0.10.0', 'resnext50_32x4d', pretrained=True)
+    def __init__(self, device_choice, input_shape = (224, 224)):
+        self.device_choice = device_choice
+        self.device = torch.device(self.device_choice)
+        
+        self.model = torch.hub.load('pytorch/vision:v0.10.0', 'resnext50_32x4d', pretrained=False)
+        state_dict = torch.hub.load_state_dict_from_url('https://download.pytorch.org/models/resnext50_32x4d-1a0047aa.pth', map_location=self.device)
+        self.model.load_state_dict(state_dict)
         self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
 
         self.input_shape = input_shape
