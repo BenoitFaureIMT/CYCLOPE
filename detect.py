@@ -126,7 +126,7 @@ def run(
         ret, frame = cam.read()
 
     print("Average total interference : Detection + ReID + Tracking : ", int(sum(interference)/len(interference)), " ms")
-    print("Max index detected : ", tr.next_id - 1)
+    print("Max id detected : ", tr.next_id - 1)
 
     cam.release()
     cv2.destroyAllWindows()
