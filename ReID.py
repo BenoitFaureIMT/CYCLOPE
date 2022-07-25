@@ -1,36 +1,43 @@
 import numpy as np
 import cv2
+import time
 
 import torch
 from PIL import Image
 from torchvision import transforms
 
 class ResNeXt50(object):
-    def __init__(self, device_choice, input_shape = (224, 224)):
-        self.device_choice = device_choice
-        self.device = torch.device(self.device_choice)
-        
-        self.model = torch.hub.load('pytorch/vision:v0.10.0', 'resnext50_32x4d', pretrained=False)
-        state_dict = torch.hub.load_state_dict_from_url('https://download.pytorch.org/models/resnext50_32x4d-1a0047aa.pth', map_location=self.device)
-        self.model.load_state_dict(state_dict)
+    def __init__(self, device, input_shape = (224, 224)):
+        self.device = device
+
+        #self.model = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_resnet50', pretrained=True)
+        self.model = torch.hub.load('pytorch/vision:v0.10.0', 'resnext50_32x4d', pretrained=True)
+        #state_dict = torch.hub.load_state_dict_from_url('https://download.pytorch.org/models/resnext50_32x4d-1a0047aa.pth', map_location=self.device)
+        #self.model.load_state_dict(state_dict)
+        self.model.eval().to(self.device)
         self.model = torch.nn.Sequential(*list(self.model.children())[:-1])
 
         self.input_shape = input_shape
     
-    def extract_sub_image(self, img, bbox): #bbox -> [y1,x1,y2,x2] (y1, x1) top left, (y2, x2) bottom right
-        h, w, c = img.shape
-        return img[int(bbox[0]*h):int(bbox[2]*h), int(bbox[1]*w):int(bbox[3]*w)]
+    def extract_sub_image(self, img, bbox): #bbox -> [x1,y1,x2,y2] (x1, y1) top left, (x2, y2) bottom right in pixel coords
+        return img[int(bbox[1]):int(bbox[3]), int(bbox[0]):int(bbox[2])]
     
     def extract_features(self, img):
         img = cv2.resize(img, self.input_shape, cv2.INTER_LINEAR)
-        img = transforms.Compose([transforms.ToTensor()])(img) # Already normalises
-        img = img.unsqueeze(0)
+        img = transforms.Compose([transforms.ToTensor()])(img) # ToTensor already normalises
+        img = img.unsqueeze(0).to(self.device)
         with torch.no_grad():
-            output = self.model(img).flatten(start_dim=1)
+            output = self.model(img).flatten(start_dim=1).to("cpu") #TODO alot of conversions btw cpu and gpu, need to optimize
         return np.array((output / np.linalg.norm(output))[0])
     
     def get_features(self, img, bbox):
-        return self.extract_features(self.extract_sub_image(img, bbox))
+        t = time.perf_counter()
+        im = self.extract_sub_image(img, bbox)
+        dt1 = time.perf_counter() - t
+        a = self.extract_features(im)
+        dt2 = time.perf_counter() - t
+        print("ReID : ", int(dt2 * 1000), " ms | Extraction : ", int(dt1 * 1000), " ms | Network : ", int((dt2 - dt1) * 1000), " ms")
+        return a
 
 """ import tensorflow as tf
 import cv2

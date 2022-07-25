@@ -56,7 +56,7 @@ class NNFilter(object):
         #Calculate error vector
         #   Calculate detection
         dpx, dpy, dpw, dph, ndt = 0, 0, 0, 0, 0
-        if(targ.missed_detection): # TODO Make sure this is fine - here dt could be big and fuck up the taylor dev
+        if(targ.missed_detection): # TODO Make sure this is fine - here dt could be big and fuck up the taylor dev (Update : Taylor gone rn)
             dpx = detect[0] - targ.last_detected_state[0,0]
             dpy = detect[1] - targ.last_detected_state[1,0]
             dpw = detect[2] - targ.last_detected_state[2,0]
@@ -80,7 +80,7 @@ class NNFilter(object):
 
         #Calculate interpolation vector
         # inp = np.array([[err[0][0] / self.screen_w, err[1][0] / self.screen_h, 0 if targ.missed_detection else 1]])
-        inp = np.array([[err[0][0], err[1][0], 0 if targ.missed_detection else 1]])
+        inp = np.array([[err[0][0], err[1][0], detect[0] - 0.5, detect[1] - 0.5, 0 if targ.missed_detection else 1]])
         coeff = self.coeff_model.predict(inp)
 
         #Update state

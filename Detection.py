@@ -7,11 +7,11 @@ from utils.general import non_max_suppression
 import torch
 
 class YOLOv7(object):
-    def __init__(self):
+    def __init__(self, weights = "YoloV7x-m-c.pt"):
         self.device_choice = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         self.device = torch.device(self.device_choice)
         #Load model
-        self.model = attempt_load("YoloV7x-m-c.pt", map_location=self.device)
+        self.model = attempt_load(weights, map_location=self.device)
         #FP16 (seems to be if device != cpu)
         self.half = self.device_choice != 'cpu'
         if self.half:
@@ -26,7 +26,7 @@ class YOLOv7(object):
         if self.half:
             self.model(torch.zeros(1, 3, 640, 640).to(self.device).type_as(next(self.model.parameters()))) #TODO 640 to variable image size
 
-    def run_net(self, img):
+    def run_net(self, img): #img in is a torch tensor (cpy or cuda)
 
         img = torch.from_numpy(img).to(self.device)
         img = img.half() if self.half else img.float()  # uint8 to fp16/fp32
@@ -36,8 +36,8 @@ class YOLOv7(object):
 
         pred = self.model(img)[0] #What about augment, I dont know...
         pred = non_max_suppression(pred, self.conf_thres, self.iou_thres) #classes=opt.classes, agnostic=opt.agnostic_nms
-
-        return np.array(pred[0].cpu())
+        
+        return pred[0].cpu().detach().numpy()#np.array(pred[0].cpu())
 
 if False:
     def display_yolo(out, img):
