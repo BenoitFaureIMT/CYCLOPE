@@ -71,6 +71,8 @@ def run(
     cam = cv2.VideoCapture(video) # testfish.avi | MW-18Mar-1.avi
     ret, frame = cam.read()
 
+    interference = []
+
     if(save_results):
         writer = cv2.VideoWriter('output_' + video, cv2.VideoWriter_fourcc(*'DIVX'), 25, (640, 640))
 
@@ -95,7 +97,8 @@ def run(
 
         ind_dets = tr.update(out.copy(), disp, 0.01)
         
-        print("Total : ", int((time.perf_counter() - t) * 1000), " ms")
+        interference.append((time.perf_counter() - t) * 1000)
+        print("Total : ", int(interference[-1]), " ms")
 
         if show_results or save_results:
             img = display_both(tr.targs, out, ind_dets, disp)
@@ -110,6 +113,8 @@ def run(
 
         #Read next
         ret, frame = cam.read()
+
+    print("Average total interference : Detection + ReID + Tracking : ", int(sum(interference)/len(interference)), " ms")
 
     cam.release()
     cv2.destroyAllWindows()
