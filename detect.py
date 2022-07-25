@@ -3,6 +3,7 @@ import argparse
 import cv2
 import numpy as np
 import time
+import torch
 
 from Detection import YOLOv7
 from Tracker import Cyclop
@@ -30,6 +31,7 @@ def display_both(targs, out, ind_dets, img):
     
     cv2.imshow('Yolov5 + FishSORT', img)
 
+@torch.no_grad()
 def run(
     wait_screen = False,
     show_results = True,
@@ -105,7 +107,7 @@ def run(
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument("--wait_screen", action='store_true', help = "add a wait screen before tracking starts")
-    parser.add_argument("--show_results", action='store_true', help = "add a wait screen before tracking starts")
+    parser.add_argument("--show_results", action='store_true', help = "display results on screenpyth")
     parser.add_argument("--video", type = str, default = "testfish.avi", help = "path to video file")
     parser.add_argument("--weights", type = str, default = "YoloV7x-m-c.pt", help = "path to YoloV7 weights")
     parser.add_argument("--filter_weight_path", type = str, default = "filter_weights.npy", help = "path to weiths of NNFilter")
