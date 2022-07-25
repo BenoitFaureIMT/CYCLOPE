@@ -36,6 +36,7 @@ def run(
     wait_screen = False,
     show_results = True,
     save_results = False,
+    save_MOT = False,
 
     video = "testfish.avi",
 
@@ -71,15 +72,16 @@ def run(
     cam = cv2.VideoCapture(video) # testfish.avi | MW-18Mar-1.avi
     ret, frame = cam.read()
 
+    if save_MOT:
+        frame_count = 1
+        mot_file = open(video.split('.')[0] + ".txt", 'w')
+
     interference = []
 
     if(save_results):
         writer = cv2.VideoWriter('output_' + video, cv2.VideoWriter_fourcc(*'DIVX'), 25, (640, 640))
 
     while ret:
-        img_h = frame.shape[0]
-        img_w = frame.shape[1]
-
         print("-------------------")
         t = time.perf_counter()
 
@@ -111,13 +113,25 @@ def run(
         if k == 27:
             break
 
+        #MOT
+        if save_MOT:
+            for t in tr.targs:
+                mot_file.write(
+                    str(frame_count) + ", " + str(t.id) + ", " + 
+                    str(t.state[0][0] * 640) + ", " + str(t.state[1][0] * 640) + ", " + 
+                    str(t.state[2][0] * 640) + ", " + str(t.state[3][0] * 640) + ", -1, -1, -1, -1\n")
+            frame_count += 1
+
         #Read next
         ret, frame = cam.read()
 
     print("Average total interference : Detection + ReID + Tracking : ", int(sum(interference)/len(interference)), " ms")
+    print("Max index detected : ", tr.next_id - 1)
 
     cam.release()
     cv2.destroyAllWindows()
+    if save_MOT:
+        mot_file.close()
     if save_results:
         writer.release()
 
@@ -126,6 +140,7 @@ def parse_opt():
     parser.add_argument("--wait_screen", action='store_true', help = "add a wait screen before tracking starts")
     parser.add_argument("--show_results", action='store_true', help = "display results on screen")
     parser.add_argument("--save_results", action='store_true', help = "save display results")
+    parser.add_argument("--save_MOT", action='store_true', help = "save targets to file in MOT format")
     parser.add_argument("--video", type = str, default = "testfish.avi", help = "path to video file")
     parser.add_argument("--weights", type = str, default = "YoloV7x-m-c.pt", help = "path to YoloV7 weights")
     parser.add_argument("--filter_weight_path", type = str, default = "filter_weights.npy", help = "path to weiths of NNFilter")
