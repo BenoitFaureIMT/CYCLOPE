@@ -3,3 +3,4 @@ __pycache__/
 
 #Weight file to ingnore
 *.pt
+*.avi

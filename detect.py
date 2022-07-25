@@ -29,12 +29,13 @@ def display_both(targs, out, ind_dets, img):
         cv2.rectangle(img, (int(x - w/2), int(y - h/2)), (int(x + w/2), int(y + h/2)), (0,0,255) if t.missed_detection else (255, 0, 0), 1)
         draw_txt(img, str(t.id), int(x - w/2), int(y + h/2), color = (255, 0, 0))
     
-    cv2.imshow('Yolov5 + FishSORT', img)
+    return img
 
 @torch.no_grad()
 def run(
     wait_screen = False,
     show_results = True,
+    save_results = False,
 
     video = "testfish.avi",
 
@@ -69,6 +70,10 @@ def run(
 
     cam = cv2.VideoCapture(video) # testfish.avi | MW-18Mar-1.avi
     ret, frame = cam.read()
+
+    if(save_results):
+        writer = cv2.VideoWriter('output_' + video, cv2.VideoWriter_fourcc(*'DIVX'), 25, (640, 640))
+
     while ret:
         img_h = frame.shape[0]
         img_w = frame.shape[1]
@@ -92,8 +97,13 @@ def run(
         
         print("Total : ", int((time.perf_counter() - t) * 1000), " ms")
 
-        if show_results:
-            display_both(tr.targs, out, ind_dets, disp)
+        if show_results or save_results:
+            img = display_both(tr.targs, out, ind_dets, disp)
+            if show_results:
+                cv2.imshow('Yolov5 + FishSORT', img)
+            if save_results:
+                writer.write(img)
+
         k = cv2.waitKey(1)
         if k == 27:
             break
@@ -103,11 +113,14 @@ def run(
 
     cam.release()
     cv2.destroyAllWindows()
+    if save_results:
+        writer.release()
 
 def parse_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument("--wait_screen", action='store_true', help = "add a wait screen before tracking starts")
-    parser.add_argument("--show_results", action='store_true', help = "display results on screenpyth")
+    parser.add_argument("--show_results", action='store_true', help = "display results on screen")
+    parser.add_argument("--save_results", action='store_true', help = "save display results")
     parser.add_argument("--video", type = str, default = "testfish.avi", help = "path to video file")
     parser.add_argument("--weights", type = str, default = "YoloV7x-m-c.pt", help = "path to YoloV7 weights")
     parser.add_argument("--filter_weight_path", type = str, default = "filter_weights.npy", help = "path to weiths of NNFilter")
