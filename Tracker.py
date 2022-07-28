@@ -4,6 +4,7 @@ from scipy.spatial.distance import cdist
 import lap
 
 from ReID import ResNeXt50
+# from Filter_con_gradient import NNFilter
 from Filter import NNFilter
 from Target import target
 from Utils import IoU
@@ -15,6 +16,7 @@ class Cyclop(object):
         self.reid = ResNeXt50('cpu') if reid == None else reid
         
         #Initialise Filter
+        # self.filter = NNFilter(640, 640, filter_weight_path)
         self.filter = NNFilter(filter_weight_path)
 
         #Initialise targets

@@ -74,6 +74,12 @@ class NNFilter(object):
         vy = dpy / ndt
         vw = dpw / ndt
         vh = dph / ndt
+
+        # if(vx*vx + vy*vy > 10):
+        #     targ.time_since_last_detection = ndt
+        #     self.update_state_no_detection(targ, dt)
+        #     return np.array([[]]), np.array([[]])
+
         detected_state = np.array([[detect[0], detect[1], detect[2], detect[3], vx, vy, vw, vh]]).T
     	#   Calculate error
         err = detected_state - targ.pred_state
