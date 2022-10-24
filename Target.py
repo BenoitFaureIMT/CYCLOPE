@@ -10,6 +10,8 @@ class target(object):
         self.id = id
         self.age = 1
 
+        # self.activated = True #TODO: testing
+
         #Initialize ReID info
         self.features = features
 

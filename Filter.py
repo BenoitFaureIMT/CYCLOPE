@@ -1,6 +1,8 @@
 #Dependences
 import numpy as np
 
+from Target import target
+
 #Custom adaptation of the Kalman filter - which is not a Kalman filter at all
 #       -> Replaces Kalman's inovation with a NN
 #Requirements for targets
@@ -50,6 +52,15 @@ class NNFilter(object):
         targ.missed_detection = True
         targ.time_since_last_detection += dt
         targ.age += 1
+
+     #TODO : Testing
+    # def update_state(self, targ, detect, dt):
+    #     def get_length(v):
+    #         return v[0]**2 + v[1]**2
+    #     dist = get_length(detect[:2] - targ.pred_state.T[0][:2])
+    #     if dist > 0.4:
+    #         return target(detect, targ.features, targ.id)
+    #     return self.update_state_bis(targ, detect, dt)
 
     #   State update - detection (detect -> [xc, yc, w, h])
     def update_state(self, targ, detect, dt):

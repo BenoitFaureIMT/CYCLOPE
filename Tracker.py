@@ -8,10 +8,11 @@ from ReID import ResNeXt50
 from Filter import NNFilter
 from Target import target
 from Utils import IoU
+from Logger import Logger
 
 #Class containing the tracker logic
 class Cyclop(object):
-    def __init__(self, filter_weight_path = "filter_weights.npy", reid = None, age_max = 6, alpha = 0.6, IoU_threshold = 0.4, cosine_threshold = 0.25, cost_threshold = 0.4): #screen_w, screen_h,
+    def __init__(self, filter_weight_path = "filter_weights.npy", reid = None, age_max = 6, alpha = 0.6, IoU_threshold = 0.4, cosine_threshold = 0.25, cost_threshold = 0.4, distance_threshold = 0.2): #screen_w, screen_h,
         #Initialise ReID
         self.reid = ResNeXt50('cpu') if reid == None else reid
         
@@ -32,6 +33,8 @@ class Cyclop(object):
         self.cosine_threshold = cosine_threshold #Max cosine dist allowed
         self.cost_threshold = cost_threshold #Max cost value
 
+        self.distance_threshold = distance_threshold
+
     #Update the state of the tracker
     def update(self, detections, image, dt):
         #Get new state predictions for each target
@@ -39,7 +42,7 @@ class Cyclop(object):
             self.filter.pred_next_state(t, dt)
 
         #Filter detections
-        filt = detections[:,4] > 0.35
+        filt = detections[:,4] > 0.4#0.35
         o_filt = [not f for f in filt]
         sec_detections = detections[o_filt]
         detections = detections[filt] #TODO more work needed here + is it neded?
@@ -93,6 +96,8 @@ class Cyclop(object):
             #Indices of detections
             list_ind_det[ind_det] = self.targs[ind_track].id
 
+            # targ.activated = True #TODO: testing
+
         #   Targets which were matched - low scores
         for ind_track, ind_det in sec_match:
             targ = self.targs[ind_track]
@@ -100,10 +105,20 @@ class Cyclop(object):
             targ.update_feature(sec_detection_features[ind_det], self.alpha)
             new_targs.append(targ)
 
+            # targ.activated = True #TODO: testing
+
         #   Targets which were not matched
         for ind_unm_tr in unm_tr:
             targ = self.targs[ind_unm_tr]
             self.filter.update_state_no_detection(targ, dt)
+
+            #----TODO: Testing----
+            # if targ.age <= 30:
+            #     new_targs.append(targ)
+            # if targ.age > self.age_max:
+            #     targ.activated = False
+            #---------------------
+
             if targ.age <= self.age_max:
                 new_targs.append(targ)
         
@@ -119,17 +134,72 @@ class Cyclop(object):
         #Indices of detections
         return list_ind_det
     
+    #TODO : Testing 2
+    # def get_cost_matrix(self, detections, targs, detection_features):
+    #     #   Calculate IOU cost matrix TODO (IOU CALCULATION TAKES xywh RIGHT NOW, NOT EFFICIENT!!!!!!!!)
+    #     cost_matrix_IoU = np.array([[1 - IoU(t.pred_state.T[0], d) for d in detections] for t in targs]) #TODO : calculate it...
+    #     cost_matrix_IoU[cost_matrix_IoU > self.IoU_threshold] = 1.0
+
+    #     #Calculate distance matrix
+    #     def get_length(v):
+    #         return v[0]**2 + v[1]**2
+    #     dist_matrix = np.array([[get_length(d[:2] - t.pred_state.T[0][:2]) for d in detections] for t in targs]) > self.distance_threshold
+
+    #     #   Calculate features cost matrix
+    #     cost_matrix_feature = np.maximum(0.0, cdist(np.array([t.features for t in targs]), detection_features, metric='cosine')) / 2.0 #TODO : better way of creating array? Maybe store separately?
+    #     #cost_matrix_feature[np.logical_and(cost_matrix_feature > self.cosine_threshold, cost_matrix_IoU > self.IoU_threshold)] = 1.0
+    #     cost_matrix_feature[cost_matrix_feature > self.cosine_threshold] = 1.0
+
+    #     #   Final cost matrix calculation
+    #     mat =  np.minimum(cost_matrix_IoU, cost_matrix_feature) #mat = cost_matrix_IoU * cost_matrix_feature
+    #     #mat[np.logical_and(cost_matrix_feature > self.cosine_threshold, cost_matrix_IoU > self.IoU_threshold)] = 1.0
+    #     mat[dist_matrix] = 1
+        
+    #     return mat
+
+    # #TODO : Testing1
+    # def get_cost_matrix(self, detections, targs, detection_features):
+    #     #   Calculate IOU cost matrix TODO (IOU CALCULATION TAKES xywh RIGHT NOW, NOT EFFICIENT!!!!!!!!)
+    #     cost_matrix_IoU = np.array([[1 - IoU(t.pred_state.T[0], d) for d in detections] for t in targs]) #TODO : calculate it...
+    #     #cost_matrix_IoU[cost_matrix_IoU > IoU_threshold] = 1.0
+
+    #     #Calculate distance matrix
+    #     def get_length(v):
+    #         return v[0]**2 + v[1]**2
+    #     dist_matrix = np.array([[get_length(d[:2] - t.pred_state.T[0][:2]) for d in detections] for t in targs]) > self.distance_threshold
+
+    #     #   Calculate features cost matrix
+    #     cost_matrix_feature = np.maximum(0.0, cdist(np.array([t.features for t in targs]), detection_features, metric='cosine')) / 2.0 #TODO : better way of creating array? Maybe store separately?
+    #     #cost_matrix_feature[np.logical_and(cost_matrix_feature > self.cosine_threshold, cost_matrix_IoU > self.IoU_threshold)] = 1.0
+    #     ##cost_matrix_feature[cost_matrix_feature > self.cosine_threshold] = 1.0
+
+    #     #   Final cost matrix calculation
+    #     mat =  np.minimum(cost_matrix_IoU, cost_matrix_feature) #mat = cost_matrix_IoU * cost_matrix_feature
+    #     mat[np.logical_and(cost_matrix_feature > self.cosine_threshold, cost_matrix_IoU > self.IoU_threshold)] = 1.0
+    #     # mat[dist_matrix] = 1
+
+    #     return mat
+    
+    # Base
     def get_cost_matrix(self, detections, targs, detection_features):
         #   Calculate IOU cost matrix TODO (IOU CALCULATION TAKES xywh RIGHT NOW, NOT EFFICIENT!!!!!!!!)
         cost_matrix_IoU = np.array([[1 - IoU(t.pred_state.T[0], d) for d in detections] for t in targs]) #TODO : calculate it...
         #cost_matrix_IoU[cost_matrix_IoU > IoU_threshold] = 1.0
 
+        #Calculate distance matrix
+        def get_length(v):
+            return v[0]**2 + v[1]**2
+        dist_matrix = np.array([[get_length(d[:2] - t.pred_state.T[0][:2]) for d in detections] for t in targs]) > self.distance_threshold
+
         #   Calculate features cost matrix
         cost_matrix_feature = np.maximum(0.0, cdist(np.array([t.features for t in targs]), detection_features, metric='cosine')) / 2.0 #TODO : better way of creating array? Maybe store separately?
-        cost_matrix_feature[np.logical_and(cost_matrix_feature > self.cosine_threshold, cost_matrix_IoU > self.IoU_threshold)] = 1.0 #cost_matrix_feature[cost_matrix_feature > cosine_threshold] = 1.0
+        cost_matrix_feature[np.logical_and(cost_matrix_feature > self.cosine_threshold, cost_matrix_IoU > self.IoU_threshold)] = 1.0
+        #cost_matrix_feature[cost_matrix_feature > self.cosine_threshold] = 1.0
 
         #   Final cost matrix calculation
-        return np.minimum(cost_matrix_IoU, cost_matrix_feature)
+        mat =  np.minimum(cost_matrix_IoU, cost_matrix_feature) #mat = cost_matrix_IoU * cost_matrix_feature
+        mat[dist_matrix] = 1
+        return mat
 
     def associate(self, cost_mat, cost_thres): # TODO : does this work?
         if cost_mat.size == 0:

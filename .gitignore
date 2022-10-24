@@ -1,7 +1,9 @@
 #python file to ignore
 __pycache__/
+train/
 
 #Weight file to ingnore
 *.pt
 *.avi
 *.mp4
+*.pth

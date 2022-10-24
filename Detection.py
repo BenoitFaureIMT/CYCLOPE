@@ -39,6 +39,32 @@ class YOLOv7(object):
         
         return pred[0].cpu().detach().numpy()#np.array(pred[0].cpu())
 
+class LabelReader(object):
+    def __init__(self, labelFile, device = 'gpu'): #Labels supposed to be -> frame#, yolov7 format detection
+        with open(labelFile, 'r') as f:
+            reads = f.readlines()
+            self.labels = []
+            hold = []
+            c = 0
+            for line in reads:
+                decon = line.split(' ')
+                if c == int(decon[0]):
+                    hold.append([int(x) for x in decon[1:]])
+                else:
+                    self.labels.append(hold)
+                    hold = []
+                    c += 1
+        self.labels.reverse()
+        self.device = device
+    
+    def warm_up(self):
+        return None
+    
+    def run_net(self, img):
+        return np.array(self.labels.pop())
+
+
+
 if False:
     def display_yolo(out, img):
         for o in out:
